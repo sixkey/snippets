@@ -15,6 +15,7 @@ var Boid = (initPack = {}) => {
         {
             width: 12,
             height: 10,
+            radius: 10,
 
             objectType: "BOID",
             rotation: Math.PI / 2,
@@ -68,10 +69,19 @@ var BoidManager = (initPack, handler) => {
     var self = {
         handler,
 
-        vision: 100,
-        cohesionCoef: 0.2,
-        alignmentCoef: 0.1,
-        avoidanceCoef: 0.2,
+        vision: 80,
+
+        obstacleVision: 60,
+
+        cohesionCoef: 0.4,
+        alignmentCoef: 0.7,
+        avoidanceCoef: 0.3,
+
+        boidWeight: 0.6,
+
+        maxSteering: 1,
+
+        obstacleWeight: 8,
 
         ...initPack,
     };
@@ -91,15 +101,17 @@ var BoidManager = (initPack, handler) => {
         } else {
             angle = -Math.PI - d;
         }
-
-        return -((1 - distance) * angle) * self.avoidanceCoef * weight;
+        return {
+            steering: -angle * self.avoidanceCoef,
+            weight: weight * (1 - distance),
+        };
     };
 
     self.cohesion = (object, points) => {
         var average = SpoolMath.averageVectors(points);
 
         if (!average) {
-            return 0;
+            return { steering: 0, weight: 0 };
         }
 
         var angle = SpoolMath.globalAngle(
@@ -111,12 +123,15 @@ var BoidManager = (initPack, handler) => {
 
         var d = SpoolMath.angleDistance(object.rotation, angle);
 
-        return d * self.cohesionCoef;
+        return {
+            steering: d,
+            weight: self.cohesionCoef,
+        };
     };
 
     self.alignment = (object, angles) => {
         if (angles.length == 0) {
-            return 0;
+            return { steering: 0, weight: 0 };
         }
 
         var d = SpoolMath.angleDistance(
@@ -124,7 +139,10 @@ var BoidManager = (initPack, handler) => {
             SpoolMath.average(angles)
         );
 
-        return d * self.alignmentCoef;
+        return {
+            steering: d,
+            weight: self.alignmentCoef,
+        };
     };
 
     self.update = (object) => {
@@ -135,7 +153,7 @@ var BoidManager = (initPack, handler) => {
         var steering = 0;
 
         var otherBoids = [];
-        var blocks = [];
+        var obstacles = [];
 
         var bounds = [];
         var angles = [];
@@ -179,31 +197,60 @@ var BoidManager = (initPack, handler) => {
 
                 if (a != b) {
                     var distance = SpoolMath.objDistance(a, b);
-                    distance = Math.max(0, distance - b.width - a.width);
+                    distance = Math.max(
+                        0,
+                        distance - b.width / 2 - a.width / 2
+                    );
 
                     if (distance < self.vision) {
+                        if (b.objectType == "BOID") {
+                            angles.push(b.rotation);
+                            otherBoids.push([b.x, b.y]);
+                        }
+                    }
+
+                    if (distance < self.obstacleVision) {
                         var rec = [
                             b.x,
                             b.y,
-                            distance / self.vision,
-                            b.objectType == "BOID" ? 1 : 4,
+                            distance / self.obstacleVision,
+                            b.objectType == "BOID"
+                                ? self.boidWeight
+                                : self.obstacleWeight,
                         ];
-
-                        if (b.objectType == "BOID") {
-                            angles.push(b.rotation);
-                            otherBoids.push(rec);
-                        }
-                        blocks.push(rec);
+                        obstacles.push(rec);
                     }
                 }
             }
         }
 
-        var allPoints = blocks.concat(bounds);
+        var allPoints = obstacles.concat(bounds);
 
         if (RENDER_LINES) {
-            allPoints.forEach((point) => {
-                var ta = SpoolRenderer.camera.transformPoint(a.x, a.y);
+            allPoints.forEach((point) => {});
+        }
+
+        var steerings = [];
+        var steeringWeights = [];
+        var avoidanceSteering = 0;
+        var avoidanceWeight = 0;
+
+        allPoints.forEach((point) => {
+            var avoidance = self.avoid(
+                object,
+                point[0],
+                point[1],
+                point[2],
+                point[3]
+            );
+            steerings.push(avoidance.steering);
+            steeringWeights.push(avoidance.weight);
+
+            if (RENDER_LINES) {
+                var ta = SpoolRenderer.camera.transformPoint(
+                    object.x,
+                    object.y
+                );
                 var tb = SpoolRenderer.camera.transformPoint(
                     point[0],
                     point[1]
@@ -211,34 +258,37 @@ var BoidManager = (initPack, handler) => {
 
                 SpoolRenderer.ctx.lineWidth = 2;
                 SpoolRenderer.ctx.strokeStyle = `rgba(0, 0, 0, ${
-                    (1 - point[2]) / 2
+                    1 - point[2]
                 })`;
 
                 SpoolRenderer.drawLine(ta.x, ta.y, tb.x, tb.y);
-            });
-        }
-
-        allPoints.forEach((point) => {
-            steering += self.avoid(
-                object,
-                point[0],
-                point[1],
-                point[2],
-                point[3]
-            );
+            }
         });
 
-        steering += self.cohesion(object, otherBoids);
+        cohesionSteering = self.cohesion(object, otherBoids);
 
-        steering += self.alignment(object, angles);
+        alignmentSteering = self.alignment(object, angles);
 
-        object.rotation += (SpoolMath.sigmoid(steering) - 0.5) * 1.7;
+        steerings.push(cohesionSteering.steering);
+        steeringWeights.push(cohesionSteering.weight);
+
+        steerings.push(alignmentSteering.steering);
+        steeringWeights.push(alignmentSteering.weight);
+
+        object.rotation +=
+            (SpoolMath.sigmoid(
+                SpoolMath.weightedAverage(steerings, steeringWeights)
+            ) -
+                0.5) *
+            self.maxSteering;
     };
 
     return self;
 };
 
-client.handler.addManager(BoidManager({}, client.handler));
+var boidManager = BoidManager({}, client.handler);
+
+client.handler.addManager(boidManager);
 
 var BouncingManager = (initPack, handler) => {
     var self = {
@@ -255,8 +305,6 @@ var BouncingManager = (initPack, handler) => {
         var worldHeight = self.handler.client.height;
         var velX = object.calculatedVelX;
         var velY = object.calculatedVelY;
-
-        console.log();
 
         if (object.y < -worldHeight / 2) {
             object.y = -worldHeight - object.y;
@@ -290,6 +338,24 @@ client.handler.addManager(BouncingManager({}, client.handler));
 
 //// PLAYER ////
 
+var Ball = (initPack = {}) => {
+    var size = 200;
+    var self = Entity(
+        {
+            width: size,
+            height: size,
+            radius: size / 2,
+
+            objectType: "BALL",
+            color: "black",
+            ...initPack,
+        },
+        ClientEntity
+    );
+
+    return self;
+};
+
 var Player = (initPack = {}) => {
     var self = Entity(
         {
@@ -299,6 +365,7 @@ var Player = (initPack = {}) => {
             y: 0,
             width: 100,
             height: 100,
+            radius: 50,
 
             objectType: "PLAYER",
 
@@ -386,6 +453,9 @@ keysToConstructors = {
     boid: {
         const: Boid,
     },
+    ball: {
+        const: Ball,
+    },
 };
 
 var objectSpawner = ObjectSpawner(client.handler, keysToConstructors);
@@ -419,12 +489,15 @@ mouseListener.onMouseEvent = (e) => {
 
 objectSpawner.spawnInRectangle(
     "boid",
-    120,
+    100,
     -client.width / 2,
     -client.height / 2,
     client.width,
     client.height
 );
+
+var ball = objectSpawner.spawn("ball", -client.width / 4, 0);
+var ball = objectSpawner.spawn("ball", +client.width / 4, 0);
 
 SpoolRenderer.camera = client.camera;
 
