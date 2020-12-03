@@ -1,0 +1,1 @@
+uglifyjs boids/boids.js spool/spool.min.js -o boids/boids.min.js -c -m
