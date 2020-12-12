@@ -1,0 +1,1 @@
+uglifyjs spool/spool.min.js hunters/dnn.js hunters/hunters.js -o hunters/hunters.min.js -c -m

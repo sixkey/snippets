@@ -8,7 +8,7 @@ var {
 //// Fist we need to initialize the spool server instance ////
 
 // all the directories that contain public data like sprites or client side scripts, html or css
-var publicDirectiories = ["/boids", "/public", "/textures", "/maps"];
+var publicDirectiories = ["/hunters", "/nn", "/public", "/textures", "/maps"];
 
 // Server object is made up of initObject (object assigned to self on creation) that is the first argument
 // Second is the position of the root folder, and then public directories relative to this root folder
