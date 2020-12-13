@@ -483,9 +483,6 @@ keyListener.onKeyDown = (e) => {
 mouseListener = MouseListener(client, { activeTypes: ["mousedown"] });
 mouseListener.mouseCoordTransformation = client.camera.inverseTransformPoint;
 mouseListener.initListener();
-mouseListener.onMouseEvent = (e) => {
-    console.log(e);
-};
 
 objectSpawner.spawnInRectangle(
     "boid",

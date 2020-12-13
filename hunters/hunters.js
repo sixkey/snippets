@@ -293,7 +293,6 @@ var Player = (initPack = {}) => {
     self.mouseEventInWorld = (x, y, value) => {
         self.x = x;
         self.y = y;
-        console.log(value);
     };
 
     // Overriding the entity update function
@@ -375,16 +374,6 @@ keysToConstructors = {
 
 var objectSpawner = ObjectSpawner(client.handler, keysToConstructors);
 
-var colPairs = [
-    {
-        a: ["PLAYER"],
-        b: ["BOX"],
-        func: (a, b) => {
-            console.log("collision");
-        },
-    },
-];
-
 var player = Player({
     x: 0,
     y: 0,
@@ -419,27 +408,9 @@ client.camera.lerp = true;
 keyListener = KeyboardListener(client);
 keyListener.initListener();
 keyListener.onKeyDown = (e) => {
+    e.preventDefault();
     if (e.keyCode == 32) {
         EXTENDED_RENDERING = !EXTENDED_RENDERING;
-    }
-};
-
-mouseListener = MouseListener(client, {
-    activeTypes: ["mousedown", "mousemove"],
-});
-mouseListener.mouseCoordTransformation = client.camera.inverseTransformPoint;
-mouseListener.initListener();
-mouseListener.onMouseEvent = (e) => {};
-
-mouseListener.onMouseMove = (e) => {
-    if (mouseListener.pressed) {
-        let { x, y } = mouseListener.mouseCoordTransformation(
-            e.clientX,
-            e.clientY
-        );
-
-        player.x = x;
-        player.y = y;
     }
 };
 
