@@ -1,6 +1,6 @@
 var coordinator = new Coordinator();
 
-var canvas = new Canvas();
+var canvas = new Canvas("spool-root");
 canvas.fullScreen();
 var screenRect = SPTensors.vector([0, 0, canvas.width, canvas.height]);
 
