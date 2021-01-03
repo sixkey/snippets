@@ -1,0 +1,1 @@
+uglifyjs spool.min.js particles.js -o particles.min.js -c -m
