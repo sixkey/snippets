@@ -14,11 +14,11 @@ let periodicLogger = new PeriodicLogger(browserClock);
 /// UI
 
 let devContainer = {
-    n: 2,
-    e: 40,
-    sigma: 80,
-    timeSpeed: 20,
-    forceBounds: 1,
+    n: 1.7,
+    e: 250,
+    sigma: 110,
+    timeSpeed: 50,
+    forceBounds: 6.3,
 };
 
 let devui = new DevUI("spool-root", devContainer);
