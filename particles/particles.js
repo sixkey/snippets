@@ -46,7 +46,7 @@ devui.addButton('preset - "Real"', (e) => {
 
 devui.addButton("preset - star", (e) => {
     Object.assign(devContainer, {
-        n: 1,
+        n: 1.7,
         e: 250,
         sigma: 110,
         timeSpeed: 50,
