@@ -4,10 +4,10 @@ let coordinator = new Coordinator();
 
 /// CLOCK
 
-let browserClock = new BrowserClock(function (ts) {
+let browserClock = new IntervalClock(function (ts) {
     canvas.clear();
     coordinator.update(ts);
-}, 1);
+}, 10);
 
 let periodicLogger = new PeriodicLogger(browserClock);
 
