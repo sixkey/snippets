@@ -7,7 +7,7 @@ let coordinator = new Coordinator();
 let browserClock = new IntervalClock(function (ts) {
     canvas.clear();
     coordinator.update(ts);
-}, 10);
+}, 30);
 
 let periodicLogger = new PeriodicLogger(browserClock);
 
@@ -167,7 +167,6 @@ function spawnTowers() {
             new Meta("tower"),
             new TowerComponent()
         );
-        res.addTo(coordinator);
         res.gid = graph.addNode(res);
         towers.push(res);
         res.addTo(coordinator);
